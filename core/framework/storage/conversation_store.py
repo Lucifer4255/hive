@@ -67,7 +67,10 @@ class FileConversationStore:
         def _read_all() -> list[dict[str, Any]]:
             if not self._parts_dir.exists():
                 return []
-            files = sorted(self._parts_dir.glob("*.json"))
+            files = sorted(
+                (f for f in self._parts_dir.glob("*.json") if f.stem.isdigit()),
+                key=lambda f: int(f.stem),
+            )
             parts = []
             for f in files:
                 data = self._read_json(f)
@@ -94,8 +97,9 @@ class FileConversationStore:
             if not self._parts_dir.exists():
                 return
             for f in self._parts_dir.glob("*.json"):
-                file_seq = int(f.stem)
-                if file_seq < seq:
+                if not f.stem.isdigit():
+                    continue
+                if int(f.stem) < seq:
                     f.unlink()
 
         await self._run(_delete)

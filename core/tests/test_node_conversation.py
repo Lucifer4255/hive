@@ -560,6 +560,18 @@ class TestFileConversationStore:
         assert [p["seq"] for p in parts] == [3, 4]
 
     @pytest.mark.asyncio
+    async def test_delete_parts_before_skips_non_numeric_files(self, tmp_path):
+        store = FileConversationStore(tmp_path / "conv")
+        for i in range(5):
+            await store.write_part(i, {"seq": i})
+        # Place a non-numeric file in parts/ to simulate corruption
+        (store._parts_dir / "corrupt.json").write_text("{}")
+        # Should not raise, and should still delete parts before seq=3
+        await store.delete_parts_before(3)
+        parts = await store.read_parts()
+        assert [p["seq"] for p in parts] == [3, 4]
+
+    @pytest.mark.asyncio
     async def test_idempotent_write_part(self, tmp_path):
         store = FileConversationStore(tmp_path / "conv")
         await store.write_part(0, {"seq": 0, "v": 1})
